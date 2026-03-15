@@ -1,0 +1,18 @@
+services:
+  tools:
+    build: .
+    container_name: tools
+    restart: always
+    labels:
+      - "traefik.http.services.tools.loadbalancer.server.port=8080"
+    volumes:
+      - share-data:/data
+    networks:
+      - traefik-proxy
+
+volumes:
+  share-data:
+
+networks:
+  traefik-proxy:
+    external: true

@@ -1,0 +1,24 @@
+:root {
+  --bg-deep: #0a0a0c;
+  --bg-surface: #111114;
+  --bg-raised: #18181c;
+  --bg-hover: #1f1f24;
+  --border: #2a2a30;
+  --border-subtle: #1e1e24;
+  --text-primary: #e4e4e8;
+  --text-secondary: #8e8e96;
+  --text-muted: #5a5a64;
+  --accent: #c4956a;
+  --accent-dim: #a07850;
+  --accent-glow: rgba(196, 149, 106, 0.08);
+  --green: #7ec89b;
+  --red: #d47979;
+  --blue: #7ca5d4;
+  --purple: #b49cdb;
+  --font-mono: 'IBM Plex Mono', 'Menlo', monospace;
+  --font-serif: 'Instrument Serif', Georgia, serif;
+  --font-sans: 'DM Sans', -apple-system, sans-serif;
+  --radius: 6px;
+  --transition: 180ms ease;
+  --sidebar-width: 220px;
+}
