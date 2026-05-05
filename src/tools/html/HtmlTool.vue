@@ -7,7 +7,8 @@
       <div class="spacer"></div>
       <button class="toolbar-btn" :class="{ active: viewMode === 'split' }" @click="viewMode = 'split'">Split</button>
       <button class="toolbar-btn" :class="{ active: viewMode === 'preview' }" @click="viewMode = 'preview'">Preview</button>
-      <ShareButton tool="html" :getState="() => ({ source: source })" />
+      <button class="toolbar-btn" @click="theme = theme === 'dark' ? 'light' : 'dark'" :title="`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`">{{ theme === 'dark' ? 'Light' : 'Dark' }}</button>
+      <ShareButton tool="html" :getState="() => ({ source: source, theme: theme })" />
       <div class="export-wrapper">
         <button class="toolbar-btn" :class="{ active: exportOpen }" @click.stop="exportOpen = !exportOpen">Export</button>
         <div class="export-menu" :class="{ open: exportOpen }" @click.stop>
@@ -83,8 +84,14 @@ const { download } = useDownload()
 
 const exportOpen = ref(false)
 const viewMode = ref('split')
+const theme = ref('dark')
 const filename = ref('')
 const source = ref('')
+
+const themeColors = computed(() => theme.value === 'light'
+  ? { bg: '#ffffff', fg: '#1a1a1a', muted: '#5a5a64', border: '#e0e0e4', codeBg: '#f5f5f7', accent: '#9c6f3d' }
+  : { bg: '#111114', fg: '#e4e4e8', muted: '#8e8e96', border: '#2a2a30', codeBg: '#0a0a0c', accent: '#7ca5d4' }
+)
 const editorEl = ref(null)
 const frameEl = ref(null)
 
@@ -103,14 +110,27 @@ const wordCount = computed(() => {
 // Wrap fragments so partial HTML still renders. Detect full document.
 const isFullDoc = computed(() => /<(!doctype|html|head|body)\b/i.test(source.value))
 const frameDoc = computed(() => {
-  if (isFullDoc.value) return source.value
+  const c = themeColors.value
+  if (isFullDoc.value) {
+    // Inject theme override stylesheet so toggle affects user-provided full docs too
+    const override = `<style data-theme-override>
+      html,body{background:${c.bg} !important;color:${c.fg} !important;}
+    </style>`
+    if (/<\/head>/i.test(source.value)) {
+      return source.value.replace(/<\/head>/i, override + '</head>')
+    }
+    return override + source.value
+  }
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
-    html,body{margin:0;padding:24px;background:#111114;color:#e4e4e8;font-family:system-ui,-apple-system,sans-serif;line-height:1.6;}
-    a{color:#7ca5d4;}
+    html,body{margin:0;padding:24px;background:${c.bg};color:${c.fg};font-family:system-ui,-apple-system,sans-serif;line-height:1.6;}
+    a{color:${c.accent};}
     pre,code{font-family:ui-monospace,'IBM Plex Mono',monospace;}
-    pre{background:#0a0a0c;padding:12px;border-radius:6px;overflow:auto;}
+    pre{background:${c.codeBg};padding:12px;border-radius:6px;overflow:auto;}
+    code{background:${c.codeBg};padding:2px 6px;border-radius:4px;}
+    pre code{background:transparent;padding:0;}
     table{border-collapse:collapse;}
-    th,td{border:1px solid #2a2a30;padding:6px 10px;}
+    th,td{border:1px solid ${c.border};padding:6px 10px;}
+    blockquote{border-left:3px solid ${c.accent};margin:1rem 0;padding:0.5rem 1rem;color:${c.muted};}
     img{max-width:100%;}
   </style></head><body>${source.value}</body></html>`
 })
@@ -139,13 +159,14 @@ async function renderToCanvas() {
   const doc = frameEl.value?.contentDocument
   if (!doc || !doc.body) throw new Error('Preview not ready')
 
+  const c = themeColors.value
   const container = document.createElement('div')
   container.style.cssText = `
     position: absolute; left: -9999px; top: 0;
     width: 816px;
-    background: #111114;
+    background: ${c.bg};
     padding: 48px 56px;
-    color: #e4e4e8;
+    color: ${c.fg};
     font-family: system-ui, -apple-system, sans-serif;
     line-height: 1.6;
   `
@@ -169,21 +190,28 @@ async function renderToCanvas() {
   }
 
   const canvas = await html2canvas(container, {
-    backgroundColor: '#111114',
+    backgroundColor: c.bg,
     scale: 2,
     useCORS: true,
     logging: false,
   })
 
   document.body.removeChild(container)
-  return { canvas, containerWidth, breakPoints }
+  return { canvas, containerWidth, breakPoints, bg: c.bg }
+}
+
+function hexToRgb(hex) {
+  const h = hex.replace('#', '')
+  const v = h.length === 3 ? h.split('').map(x => x + x).join('') : h
+  return [parseInt(v.slice(0, 2), 16), parseInt(v.slice(2, 4), 16), parseInt(v.slice(4, 6), 16)]
 }
 
 async function exportPdf() {
   closeExport()
   toast('Generating PDF...')
   try {
-    const { canvas, containerWidth, breakPoints } = await renderToCanvas()
+    const { canvas, containerWidth, breakPoints, bg } = await renderToCanvas()
+    const [br, bgG, bb] = hexToRgb(bg)
 
     const pdfPageWidth = 612, pdfPageHeight = 792, margin = 36
     const contentWidth = pdfPageWidth - margin * 2
@@ -223,7 +251,7 @@ async function exportPdf() {
 
     for (let p = 0; p < pages.length; p++) {
       if (p > 0) pdf.addPage()
-      pdf.setFillColor(17, 17, 20)
+      pdf.setFillColor(br, bgG, bb)
       pdf.rect(0, 0, pdfPageWidth, pdfPageHeight, 'F')
 
       const { startPx, endPx } = pages[p]
@@ -310,6 +338,7 @@ let defaultLoaded = false
 
 useShareable('html', (shared) => {
   source.value = shared.source || ''
+  if (shared.theme === 'light' || shared.theme === 'dark') theme.value = shared.theme
   defaultLoaded = true
 })
 
@@ -355,7 +384,7 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   border: none;
-  background: #111114;
+  background: transparent;
 }
 
 .export-wrapper { position: relative; }
