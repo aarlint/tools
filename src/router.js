@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 const routes = [
   { path: '/', redirect: '/md' },
   { path: '/md', component: () => import('./tools/markdown/MarkdownTool.vue'), meta: { name: 'Markdown', icon: 'M↓', group: 'Text' } },
+  { path: '/html', component: () => import('./tools/html/HtmlTool.vue'), meta: { name: 'HTML', icon: '<>', group: 'Text' } },
   { path: '/json', component: () => import('./tools/json/JsonTool.vue'), meta: { name: 'JSON', icon: '{}', group: 'Text' } },
   { path: '/diff', component: () => import('./tools/diff/DiffTool.vue'), meta: { name: 'Diff', icon: '±', group: 'Text' } },
   { path: '/regex', component: () => import('./tools/regex/RegexTool.vue'), meta: { name: 'Regex', icon: '.*', group: 'Text' } },
