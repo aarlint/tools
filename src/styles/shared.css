@@ -326,6 +326,43 @@
   color: var(--text-secondary);
 }
 
+/* Light theme override for md-body — locally redefines CSS vars so all
+   existing rules pick up the swapped palette without rewriting them. */
+.md-body.light {
+  --bg-deep: #f4f4f6;
+  --bg-surface: #ffffff;
+  --bg-raised: #f0f0f3;
+  --bg-hover: #ebebef;
+  --border: #d0d0d6;
+  --border-subtle: #e4e4ea;
+  --text-primary: #1a1a1f;
+  --text-secondary: #4a4a52;
+  --text-muted: #6e6e76;
+  --accent: #9c6f3d;
+  --accent-dim: #7a542d;
+  --accent-glow: rgba(156, 111, 61, 0.08);
+  background: #ffffff;
+  color: #1a1a1f;
+}
+.md-body.light strong { color: #000; }
+.md-body.light pre { background: #f6f6f8; }
+.md-body.light pre code,
+.md-body.light pre code.hljs { background: #f6f6f8; color: #1a1a1f; }
+.md-body.light pre code .hljs-keyword,
+.md-body.light pre code .hljs-selector-tag,
+.md-body.light pre code .hljs-built_in { color: #a3185c; }
+.md-body.light pre code .hljs-string,
+.md-body.light pre code .hljs-attr { color: #2a6e2a; }
+.md-body.light pre code .hljs-number,
+.md-body.light pre code .hljs-literal { color: #1f5fa8; }
+.md-body.light pre code .hljs-comment { color: #6e6e76; font-style: italic; }
+.md-body.light pre code .hljs-title,
+.md-body.light pre code .hljs-function,
+.md-body.light pre code .hljs-name { color: #6f3d9c; }
+.md-body.light pre code .hljs-variable,
+.md-body.light pre code .hljs-params { color: #1a1a1f; }
+.preview-pane.light { background: #ffffff; }
+
 /* Data table (for CSV, SQL, etc.) */
 .data-table-wrapper {
   overflow: auto;

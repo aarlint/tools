@@ -7,7 +7,8 @@
       <div class="spacer"></div>
       <button class="toolbar-btn" :class="{ active: viewMode === 'split' }" @click="viewMode = 'split'">Split</button>
       <button class="toolbar-btn" :class="{ active: viewMode === 'preview' }" @click="viewMode = 'preview'">Preview</button>
-      <ShareButton tool="md" :getState="() => ({ source: source })" />
+      <button class="toolbar-btn theme-btn" @click="theme = theme === 'dark' ? 'light' : 'dark'" :title="`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`">{{ theme === 'dark' ? '☀ Light' : '☾ Dark' }}</button>
+      <ShareButton tool="md" :getState="() => ({ source: source, theme: theme })" />
       <div class="export-wrapper">
         <button class="toolbar-btn" :class="{ active: exportOpen }" @click.stop="exportOpen = !exportOpen">Export</button>
         <div class="export-menu" :class="{ open: exportOpen }" @click.stop>
@@ -36,18 +37,18 @@
           </div>
         </template>
         <template #right>
-          <div class="pane preview-pane">
+          <div class="pane preview-pane" :class="theme">
             <PaneHeader label="Preview">{{ wordCount }} words</PaneHeader>
             <div class="preview-scroll">
-              <div class="md-body" ref="mdBodyEl" v-html="mdHtml"></div>
+              <div class="md-body" :class="theme" ref="mdBodyEl" v-html="mdHtml"></div>
             </div>
           </div>
         </template>
       </SplitPane>
-      <div v-else class="pane preview-pane preview-full">
+      <div v-else class="pane preview-pane preview-full" :class="theme">
         <PaneHeader label="Preview">{{ wordCount }} words</PaneHeader>
         <div class="preview-scroll">
-          <div class="md-body" ref="mdBodyEl" v-html="mdHtml"></div>
+          <div class="md-body" :class="theme" ref="mdBodyEl" v-html="mdHtml"></div>
         </div>
       </div>
     </div>
@@ -79,6 +80,7 @@ const { download } = useDownload()
 
 const exportOpen = ref(false)
 const viewMode = ref('split')
+const theme = ref('dark')
 const filename = ref('')
 const source = ref('')
 const mdHtml = ref('')
@@ -98,26 +100,42 @@ const wordCount = computed(() => {
 })
 
 // Mermaid setup
-mermaid.initialize({
-  startOnLoad: false,
-  theme: 'dark',
-  themeVariables: {
-    darkMode: true,
-    background: '#0a0a0c',
-    primaryColor: '#2a2a35',
-    primaryTextColor: '#e4e4e8',
-    primaryBorderColor: '#3a3a45',
-    lineColor: '#5a5a64',
-    secondaryColor: '#1a1a22',
-    tertiaryColor: '#14141a',
-    noteBkgColor: '#1e1e28',
-    noteTextColor: '#c4956a',
-    fontFamily: 'DM Sans, sans-serif',
-  },
-  flowchart: { curve: 'basis', padding: 20 },
-  sequence: { actorMargin: 50, messageMargin: 40 },
-  fontSize: 14,
-})
+function initMermaid() {
+  const isLight = theme.value === 'light'
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: isLight ? 'default' : 'dark',
+    themeVariables: isLight ? {
+      darkMode: false,
+      background: '#ffffff',
+      primaryColor: '#f0f0f3',
+      primaryTextColor: '#1a1a1f',
+      primaryBorderColor: '#d0d0d6',
+      lineColor: '#6e6e76',
+      secondaryColor: '#e4e4ea',
+      tertiaryColor: '#f4f4f6',
+      noteBkgColor: '#fff8e8',
+      noteTextColor: '#9c6f3d',
+      fontFamily: 'DM Sans, sans-serif',
+    } : {
+      darkMode: true,
+      background: '#0a0a0c',
+      primaryColor: '#2a2a35',
+      primaryTextColor: '#e4e4e8',
+      primaryBorderColor: '#3a3a45',
+      lineColor: '#5a5a64',
+      secondaryColor: '#1a1a22',
+      tertiaryColor: '#14141a',
+      noteBkgColor: '#1e1e28',
+      noteTextColor: '#c4956a',
+      fontFamily: 'DM Sans, sans-serif',
+    },
+    flowchart: { curve: 'basis', padding: 20 },
+    sequence: { actorMargin: 50, messageMargin: 40 },
+    fontSize: 14,
+  })
+}
+initMermaid()
 
 // Marked setup
 let mermaidId = 0
@@ -179,6 +197,29 @@ watch(viewMode, () => {
   nextTick(render)
 })
 
+// Dynamically load light hljs theme when needed; dark is the static import.
+let hljsLightLink = null
+function applyHljsTheme() {
+  if (theme.value === 'light') {
+    if (!hljsLightLink) {
+      hljsLightLink = document.createElement('link')
+      hljsLightLink.rel = 'stylesheet'
+      hljsLightLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css'
+      hljsLightLink.dataset.hljsLight = '1'
+      document.head.appendChild(hljsLightLink)
+    }
+  } else if (hljsLightLink) {
+    hljsLightLink.remove()
+    hljsLightLink = null
+  }
+}
+
+watch(theme, () => {
+  initMermaid()
+  applyHljsTheme()
+  nextTick(render)
+}, { immediate: true })
+
 function insertTab() {
   const el = editorEl.value
   if (!el) return
@@ -201,15 +242,17 @@ onMounted(() => {
 })
 
 async function renderToCanvas() {
+  const isLight = theme.value === 'light'
+  const bgColor = isLight ? '#ffffff' : '#111114'
   const container = document.createElement('div')
   container.style.cssText = `
     position: absolute; left: -9999px; top: 0;
     width: 816px;
-    background: #111114;
+    background: ${bgColor};
     padding: 48px 56px;
     font-family: ${getComputedStyle(mdBodyEl.value).fontFamily};
   `
-  container.className = 'md-body'
+  container.className = 'md-body' + (isLight ? ' light' : '')
   container.innerHTML = mdBodyEl.value.innerHTML
   document.body.appendChild(container)
 
@@ -227,21 +270,22 @@ async function renderToCanvas() {
   }
 
   const canvas = await html2canvas(container, {
-    backgroundColor: '#111114',
+    backgroundColor: bgColor,
     scale: 2,
     useCORS: true,
     logging: false,
   })
 
   document.body.removeChild(container)
-  return { canvas, containerWidth, breakPoints }
+  return { canvas, containerWidth, breakPoints, bgColor }
 }
 
 async function exportPdf() {
   closeExport()
   toast('Generating PDF...')
   try {
-    const { canvas, containerWidth, breakPoints } = await renderToCanvas()
+    const { canvas, containerWidth, breakPoints, bgColor } = await renderToCanvas()
+    const pdfRgb = bgColor === '#ffffff' ? [255, 255, 255] : [17, 17, 20]
 
     const pdfPageWidth = 612, pdfPageHeight = 792, margin = 36
     const contentWidth = pdfPageWidth - margin * 2
@@ -281,7 +325,7 @@ async function exportPdf() {
 
     for (let p = 0; p < pages.length; p++) {
       if (p > 0) pdf.addPage()
-      pdf.setFillColor(17, 17, 20)
+      pdf.setFillColor(pdfRgb[0], pdfRgb[1], pdfRgb[2])
       pdf.rect(0, 0, pdfPageWidth, pdfPageHeight, 'F')
 
       const { startPx, endPx } = pages[p]
@@ -328,6 +372,11 @@ async function exportPng() {
 function exportHtml() {
   closeExport()
   const styles = document.querySelector('style')?.textContent || ''
+  const isLight = theme.value === 'light'
+  const hljsTheme = isLight ? 'github' : 'github-dark-dimmed'
+  const rootVars = isLight
+    ? `--bg-deep:#f4f4f6;--bg-surface:#ffffff;--bg-raised:#f0f0f3;--border:#d0d0d6;--border-subtle:#e4e4ea;--text-primary:#1a1a1f;--text-secondary:#4a4a52;--text-muted:#6e6e76;--accent:#9c6f3d;--accent-dim:#7a542d;--accent-glow:rgba(156,111,61,0.08);`
+    : `--bg-deep:#0a0a0c;--bg-surface:#111114;--bg-raised:#18181c;--border:#2a2a30;--border-subtle:#1e1e24;--text-primary:#e4e4e8;--text-secondary:#8e8e96;--text-muted:#5a5a64;--accent:#c4956a;--accent-dim:#a07850;--accent-glow:rgba(196,149,106,0.08);`
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -337,9 +386,9 @@ function exportHtml() {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark-dimmed.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/${hljsTheme}.min.css">
 <style>
-  :root { --bg-deep:#0a0a0c;--bg-surface:#111114;--bg-raised:#18181c;--border:#2a2a30;--border-subtle:#1e1e24;--text-primary:#e4e4e8;--text-secondary:#8e8e96;--text-muted:#5a5a64;--accent:#c4956a;--accent-dim:#a07850;--accent-glow:rgba(196,149,106,0.08);--green:#7ec89b;--red:#d47979;--blue:#7ca5d4;--purple:#b49cdb;--font-mono:'IBM Plex Mono',monospace;--font-serif:'Instrument Serif',Georgia,serif;--font-sans:'DM Sans',sans-serif;--radius:6px; }
+  :root { ${rootVars}--green:#7ec89b;--red:#d47979;--blue:#7ca5d4;--purple:#b49cdb;--font-mono:'IBM Plex Mono',monospace;--font-serif:'Instrument Serif',Georgia,serif;--font-sans:'DM Sans',sans-serif;--radius:6px; }
   body { background:var(--bg-surface); color:var(--text-primary); font-family:var(--font-sans); margin:0; padding:48px 56px; display:flex; justify-content:center; }
   .md-body { max-width:860px; width:100%; font-size:0.95rem; line-height:1.75; word-wrap:break-word; }
   ${styles}
@@ -411,6 +460,7 @@ let defaultLoaded = false
 
 useShareable('md', (shared) => {
   source.value = shared.source || ''
+  if (shared.theme === 'light' || shared.theme === 'dark') theme.value = shared.theme
   defaultLoaded = true
 })
 

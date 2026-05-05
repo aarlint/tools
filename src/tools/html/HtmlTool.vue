@@ -7,7 +7,7 @@
       <div class="spacer"></div>
       <button class="toolbar-btn" :class="{ active: viewMode === 'split' }" @click="viewMode = 'split'">Split</button>
       <button class="toolbar-btn" :class="{ active: viewMode === 'preview' }" @click="viewMode = 'preview'">Preview</button>
-      <button class="toolbar-btn" @click="theme = theme === 'dark' ? 'light' : 'dark'" :title="`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`">{{ theme === 'dark' ? 'Light' : 'Dark' }}</button>
+      <button class="toolbar-btn theme-btn" @click="theme = theme === 'dark' ? 'light' : 'dark'" :title="`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`">{{ theme === 'dark' ? '☀ Light' : '☾ Dark' }}</button>
       <ShareButton tool="html" :getState="() => ({ source: source, theme: theme })" />
       <div class="export-wrapper">
         <button class="toolbar-btn" :class="{ active: exportOpen }" @click.stop="exportOpen = !exportOpen">Export</button>
