@@ -25,6 +25,7 @@ const error = ref('')
 // Map tool names to their router paths
 const toolPaths = {
   md: '/md',
+  html: '/html',
   json: '/json',
   diff: '/diff',
   regex: '/regex',
